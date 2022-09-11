@@ -11,3 +11,4 @@ TODO:
  - Fix profile located at /usr/share/apparmor/extra-profiles/usr.bin.man
  - Write openrc bootlevel script to randomize hostname from a list of natural sounding hosts
  - Run a first time setup when image is first booted, change user password, root password, make unprivd user, change cryptodisk pass
+ - Add a "Features" section to the Readme 
