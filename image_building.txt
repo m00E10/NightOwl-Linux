@@ -178,9 +178,21 @@ TODO
 apparmor_parser /usr/share/apparmor/extra-profiles/"
 
 -- Image to others -----------------------------------------------|
-dd if=/dev/wtf of=nightowl.img bs=4M status=progress
+dd if=/dev/wtf of=nightowl.img bs=4M status=progress 
 dd if=nightowl.img of=/dev/idk bs=4M status=progress
-After imaging to other USB, use gparted to expand the used space
+
+# After imaging to other USB, expand to use 100% of available space
+cryptsetup luksOpen /dev/sdX1 crypt-volume
+parted /dev/sda # resizepart NUMBER END
+vgchange -a n lvmSystem
+cryptsetup luksClose crypt-volume
+cryptsetup luksOpen /dev/sda2 crypt-volume
+cryptsetup resize crypt-volume
+vgchange -a y lvmSystem
+pvresize /dev/mapper/crypt-volume # might be lvm-system
+lvresize -l+100%FREE /dev/lvmSystem/home
+e2fsck -f /dev/mapper/lvmSystem-volRoot
+resize2fs /dev/mapper/lvmSystem-volRoot
 
 ==[ First Time Setup ]============================================|
  > Make users and passwords # usermod -a -G video $user
