@@ -199,3 +199,10 @@ resize2fs /dev/mapper/lvmSystem-volRoot
    # Download dotfiles: sway .tmux.conf .bashrc .vimrc i3stat kickoff
    ?? Add ^ to /etc/skel ??
  > Change Crypto password # For luks and for /crypto_keyfile.bin
+   cryptsetup --verbose open --test-passphrase /dev/sdX1
+   cryptsetup luksChangeKey /dev/sdX1 -S Y # Where Y is the slot number shown in the previous command
+   
+   rm /keyfile
+   dd bs=512 count=4 if=/dev/urandom of=/keyfile
+   cryptsetup luksAddKey /dev/sdX1 /keyfile
+   
