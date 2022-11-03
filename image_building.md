@@ -2,17 +2,17 @@
 Boot with an Artix USB, login as root and run the following
 ## Disk Setup
 - `pacman -Sy parted vim`
-- `parted -s /dev/sde mklabel msdos`
-- `parted -s -a optimal /dev/sde mkpart "primary" "ext4" "0%" "100%"`
-- `parted -s /dev/sde set 1 boot on`
-- `parted -s /dev/sde set 1 lvm on`
+- `parted -s /dev/sdX mklabel msdos`
+- `parted -s -a optimal /dev/sdX mkpart "primary" "ext4" "0%" "100%"`
+- `parted -s /dev/sdX set 1 boot on`
+- `parted -s /dev/sdX set 1 lvm on`
 
 ## Luks Encryption Setup 
 - `cryptsetup benchmark`
-- `cryptsetup --verbose --type luks1 --cipher serpent-xts-plain64 --key-size 512 \
-             --hash whirlpool --iter-time 10000 --use-random \
-             --verify-passphrase luksFormat /dev/sde1`
-- `cryptsetup luksOpen /dev/sde1 lvm-system`
+- `cryptsetup --verbose --type luks1 --cipher serpent-xts-plain64 --key-size 512
+             --hash whirlpool --iter-time 10000 --use-random 
+             --verify-passphrase luksFormat /dev/sdX1`
+- `cryptsetup luksOpen /dev/sdX1 lvm-system`
 - `pvcreate /dev/mapper/lvm-system`
 - `vgcreate lvmSystem /dev/mapper/lvm-system`
 - `lvcreate --contiguous y --size 1G lvmSystem --name volBoot`
@@ -24,25 +24,24 @@ Boot with an Artix USB, login as root and run the following
 - `mount /dev/lvmSystem/volRoot /mnt`
 - `mkdir /mnt/boot`
 - `mount /dev/lvmSystem/volBoot /mnt/boot`
-- `basestrap /mnt base base-devel openrc elogind-openrc linux-hardened \
-                 linux-hardened-headers linux-firmware vim`
+- `basestrap /mnt base base-devel openrc elogind-openrc linux-hardened 
+                  linux-hardened-headers linux-firmware vim`
 - `fstabgen -L /mnt >> /mnt/etc/fstab`
 - `artix-chroot /mnt`
 
 # Chroot
 ## Base Packages
-- `pacman -S grub os-prober doas dhclient wpa_supplicant networkmanager  \
-             networkmanager-openrc lvm2 lvm2-openrc device-mapper-openrc \
-             memtest86+ dosfstools cryptsetup cryptsetup-openrc haveged  \
-             haveged-openrc device-mapper-openrc cronie cronie-openrc    \
+- `pacman -S grub os-prober doas dhclient wpa_supplicant networkmanager  
+             networkmanager-openrc lvm2 lvm2-openrc device-mapper-openrc 
+             memtest86+ dosfstools cryptsetup cryptsetup-openrc haveged  
+             haveged-openrc device-mapper-openrc cronie cronie-openrc   
              syslog-ng syslog-ng-openrc glibc mkinitcpio`
 - `pacman -Rns artix-grub-theme` # Shouldn't be installed, but check anyways
 
 ## Edit mkinit to support LUKS
 Edit the HOOKS line in `/etc/mkinitcpio.conf` to look like the following:
 - `HOOKS=(base udev autodetect modconf block encrypt keyboard keymap consolefont lvm2 filesystems fsck)`
-Then run
-- `mkinitcpio -p linux-hardened`
+- Then run `mkinitcpio -p linux-hardened`
 
 ## Edit grub to support LUKS
 Edit `/etc/default/grub` to contain the following. Note that "PLACEHOLDER" should be replaced with the output of `blkid -s UUID -o value /dev/sdX1`
@@ -62,6 +61,7 @@ Then run the following
 - `rc-update add syslog-ng default`
 
 ## Locale and Hosts
+UTC recommended as it reduces potentially identifiable information
 - `ln -sf /usr/share/zoneinfo/UTC /etc/localtime`
 - `echo "en_US.UTF-8 UTF-8"   >>  /etc/locale.gen`
 - `locale-gen`
