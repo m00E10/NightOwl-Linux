@@ -86,13 +86,17 @@ UTC recommended as it reduces potentially identifiable information
 - `dd bs=512 count=4 if=/dev/urandom of=/keyfile`
 - `cryptsetup luksAddKey /dev/sdX1 /keyfile`
 Edit your `/etc/mkinitcpio.conf` to contain the following line:
-- `FILES=(/keyfile)`
+```
+FILES=(/keyfile)
+```
 Then run the following commands
 - `mkinitcpio -p linux-hardened`
 - `chmod 000 /crypto_keyfile.bin`
 - `chmod -R g-rwx,o-rwx /boot`
 Append the following to your GRUB_CMDLINE_LINUX line in `/etc/default/grub`:
-- `GRUB_CMDLINE_LINUX="... cryptkey=rootfs:/keyfile"`
+```
+GRUB_CMDLINE_LINUX="... cryptkey=rootfs:/keyfile"
+```
 Then run `grub-mkconfig -o /boot/grub/grub.cfg`
 
 # Hardening
