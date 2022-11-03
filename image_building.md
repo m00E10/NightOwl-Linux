@@ -1,10 +1,10 @@
 # Pre-chroot
 ## Disk Setup
-- pacman -Sy parted vim
-- parted -s /dev/sde mklabel msdos
-- parted -s -a optimal /dev/sde mkpart "primary" "ext4" "0%" "100%"
-- parted -s /dev/sde set 1 boot on
-- parted -s /dev/sde set 1 lvm on
+`pacman -Sy parted vim`
+`parted -s /dev/sde mklabel msdos`
+`parted -s -a optimal /dev/sde mkpart "primary" "ext4" "0%" "100%"`
+`parted -s /dev/sde set 1 boot on`
+`parted -s /dev/sde set 1 lvm on`
 
 ## Luks Encryption Setup 
 - cryptsetup benchmark
