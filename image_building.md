@@ -1,4 +1,5 @@
 # Pre-chroot
+Boot with an Artix USB, login as root and run the following
 ## Disk Setup
 - `pacman -Sy parted vim`
 - `parted -s /dev/sde mklabel msdos`
@@ -7,110 +8,151 @@
 - `parted -s /dev/sde set 1 lvm on`
 
 ## Luks Encryption Setup 
-- cryptsetup benchmark
-- cryptsetup --verbose --type luks1 --cipher serpent-xts-plain64 --key-size 512 \
+- `cryptsetup benchmark`
+- `cryptsetup --verbose --type luks1 --cipher serpent-xts-plain64 --key-size 512 \
              --hash whirlpool --iter-time 10000 --use-random \
-             --verify-passphrase luksFormat /dev/sde1 # NightOwl
-- cryptsetup luksOpen /dev/sde1 lvm-system
-- pvcreate /dev/mapper/lvm-system
-- vgcreate lvmSystem /dev/mapper/lvm-system
-- lvcreate --contiguous y --size 1G lvmSystem --name volBoot
-- lvcreate --contiguous y --extents +100%FREE lvmSystem --name volRoot
+             --verify-passphrase luksFormat /dev/sde1`
+- `cryptsetup luksOpen /dev/sde1 lvm-system`
+- `pvcreate /dev/mapper/lvm-system`
+- `vgcreate lvmSystem /dev/mapper/lvm-system`
+- `lvcreate --contiguous y --size 1G lvmSystem --name volBoot`
+- `lvcreate --contiguous y --extents +100%FREE lvmSystem --name volRoot`
 
 ## Prepare Chroot 
-- mkfs.fat -n BOOT /dev/lvmSystem/volBoot
-- mkfs.ext4 -L ROOT /dev/lvmSystem/volRoot
-- mount /dev/lvmSystem/volRoot /mnt
-- mkdir /mnt/boot
-- mount /dev/lvmSystem/volBoot /mnt/boot
-- basestrap /mnt base base-devel openrc elogind-openrc linux-hardened \
-                 linux-hardened-headers linux-firmware vim
-- fstabgen -L /mnt >> /mnt/etc/fstab
-- artix-chroot /mnt
+- `mkfs.fat -n BOOT /dev/lvmSystem/volBoot`
+- `mkfs.ext4 -L ROOT /dev/lvmSystem/volRoot`
+- `mount /dev/lvmSystem/volRoot /mnt`
+- `mkdir /mnt/boot`
+- `mount /dev/lvmSystem/volBoot /mnt/boot`
+- `basestrap /mnt base base-devel openrc elogind-openrc linux-hardened \
+                 linux-hardened-headers linux-firmware vim`
+- `fstabgen -L /mnt >> /mnt/etc/fstab`
+- `artix-chroot /mnt`
 
--- Chroot --------------------------------------------------------|
-:: Base Packages ::
-  pacman -S grub os-prober doas dhclient wpa_supplicant networkmanager  \
-        	  networkmanager-openrc lvm2 lvm2-openrc device-mapper-openrc \
-            memtest86+ dosfstools cryptsetup cryptsetup-openrc haveged  \
-            haveged-openrc device-mapper-openrc cronie cronie-openrc    \
-            syslog-ng syslog-ng-openrc glibc mkinitcpio
-  pacman -Rns artix-grub-theme # Shouldn't be installed, but check anyways
+# Chroot
+## Base Packages
+- `pacman -S grub os-prober doas dhclient wpa_supplicant networkmanager  \
+             networkmanager-openrc lvm2 lvm2-openrc device-mapper-openrc \
+             memtest86+ dosfstools cryptsetup cryptsetup-openrc haveged  \
+             haveged-openrc device-mapper-openrc cronie cronie-openrc    \
+             syslog-ng syslog-ng-openrc glibc mkinitcpio`
+- `pacman -Rns artix-grub-theme` # Shouldn't be installed, but check anyways
 
-:: Edit mkinit to support LUKS ::
-  # /etc/mkinitcpio.conf
-  #  HOOKS=(base udev autodetect modconf block encrypt keyboard keymap
-  #  consolefont lvm2 filesystems fsck)
-  mkinitcpio -p linux-hardened
+## Edit mkinit to support LUKS
+Edit the HOOKS line in `/etc/mkinitcpio.conf` to look like the following:
+- `HOOKS=(base udev autodetect modconf block encrypt keyboard keymap consolefont lvm2 filesystems fsck)`
+Then run
+- `mkinitcpio -p linux-hardened`
 
-:: Edit grub to support LUKS ::
-  xxx = blkid -s UUID -o value /dev/sde1 # $cmd >> /etc/default/grub
-  # /etc/default/grub
-  # GRUB_TIMEOUT="15"
-  # GRUB_CMDLINE_LINUX_DEFAULT="cryptdevice=UUID=xxx:lvm-system loglevel=3
-  #                             quiet net.ifnames=0"
-  # GRUB_ENABLE_CRYPTODISK="y"
-  # GRUB_DISABLE_LINUX_RECOVERY="false"
-	grub-install --target=i386-pc --boot-directory=/boot --bootloader-id=artix \
-               --recheck /dev/sde
-	grub-mkconfig -o /boot/grub/grub.cfg
-  rc-update add device-mapper boot
-  rc-update add lvm boot
-  rc-update add dmcrypt boot
-  rc-update add haveged default
-  rc-update add syslog-ng default
+## Edit grub to support LUKS
+Edit `/etc/default/grub` to contain the following. Note that "PLACEHOLDER" should be replaced with the output of `blkid -s UUID -o value /dev/sdX1`
+```
+GRUB_TIMEOUT="15"
+GRUB_CMDLINE_LINUX_DEFAULT="cryptdevice=UUID=PLACEHOLDER:lvm-system loglevel=3 quiet net.ifnames=0"
+GRUB_ENABLE_CRYPTODISK="y"
+GRUB_DISABLE_LINUX_RECOVERY="false"
+```
+Then run the following
+- `grub-install --target=i386-pc --boot-directory=/boot --bootloader-id=artix --recheck /dev/sdX`
+- `grub-mkconfig -o /boot/grub/grub.cfg`
+- `rc-update add device-mapper boot`
+- `rc-update add lvm boot`
+- `rc-update add dmcrypt boot`
+- `rc-update add haveged default`
+- `rc-update add syslog-ng default`
 
-:: Locale and Hosts ::
-	ln -sf /usr/share/zoneinfo/UTC /etc/localtime   # UTC like a baws
-	echo "en_US.UTF-8 UTF-8"   >>  /etc/locale.gen
-	locale-gen
-	echo "LANG=en_US.utf8"     >   /etc/locale.conf
-	echo "LANGUAGE=en_US"      >>  /etc/locale.conf
-	echo "LC_ALL=C"            >>  /etc/locale.conf
+## Locale and Hosts
+- `ln -sf /usr/share/zoneinfo/UTC /etc/localtime`
+- `echo "en_US.UTF-8 UTF-8"   >>  /etc/locale.gen`
+- `locale-gen`
+- `echo "LANG=en_US.utf8"     >   /etc/locale.conf`
+- `echo "LANGUAGE=en_US"      >>  /etc/locale.conf`
+- `echo "LC_ALL=C"            >>  /etc/locale.conf`
 
-  echo Owl                                >  /etc/hostname
-	echo "hostname=Owl"                     >  /etc/conf.d/hostname
-	echo "127.0.0.1 localhost"              >> /etc/hosts
-	echo "::1       localhost"              >> /etc/hosts
-	echo "127.0.0.1 Owl.localnet Owl"       >> /etc/hosts
+- `echo Owl                                >  /etc/hostname`
+- `echo "hostname=Owl"                     >  /etc/conf.d/hostname`
+- `echo "127.0.0.1 localhost"              >> /etc/hosts`
+- `echo "::1       localhost"              >> /etc/hosts`
+- `echo "127.0.0.1 Owl.localnet Owl"       >> /etc/hosts`
 
-  passwd # NightOwl
-  exit
-  umount -R /mnt
-  sync
-  reboot
+- `passwd`
+- `exit`
+- `umount -R /mnt`
+- `sync`
+- `reboot`
 
--- Post Chroot ---------------------------------------------------|
-:: Key file to stop double prompts for Encryption password ::
-  dd bs=512 count=4 if=/dev/urandom of=/keyfile
-  cryptsetup luksAddKey /dev/sde1 /keyfile
-  # FILES=(/keyfile)                                      /etc/mkinitcpio.conf
-  mkinitcpio -p linux-hardened
-  chmod 000 /crypto_keyfile.bin
-  chmod -R g-rwx,o-rwx /boot
-  # GRUB_CMDLINE_LINUX="... cryptkey=rootfs:/keyfile"        /etc/default/grub
-	grub-mkconfig -o /boot/grub/grub.cfg
+# Post Chroot
+## Key file to stop double prompts for Encryption password
+- `dd bs=512 count=4 if=/dev/urandom of=/keyfile`
+- `cryptsetup luksAddKey /dev/sdX1 /keyfile`
+Edit your `/etc/mkinitcpio.conf` to contain the following line:
+- `FILES=(/keyfile)`
+Then run the following commands
+- `mkinitcpio -p linux-hardened`
+- `chmod 000 /crypto_keyfile.bin`
+- `chmod -R g-rwx,o-rwx /boot`
+Append the following to your GRUB_CMDLINE_LINUX line in `/etc/default/grub`:
+- `GRUB_CMDLINE_LINUX="... cryptkey=rootfs:/keyfile"`
+Then run `grub-mkconfig -o /boot/grub/grub.cfg`
 
-:: Enhance Repos to avoid AUR :: # kickoff still AUR :/
-  echo "universe"                                        >> /etc/pacman.conf
-  echo "Server = https://universe.artixlinux.org/$arch"  >> /etc/pacman.conf
-  pacman -Sy artix-archlinux-support
-	echo "[extra]"                                         >> /etc/pacman.conf
-	echo "Include = /etc/pacman.d/mirrorlist-arch"         >> /etc/pacman.conf
-	echo "[community]" 				                             >> /etc/pacman.conf
-	echo "Include = /etc/pacman.d/mirrorlist-arch"         >> /etc/pacman.conf
-	echo "[multilib]"                                      >> /etc/pacman.conf
-	echo "Include = /etc/pacman.d/mirrorlist-arch"         >> /etc/pacman.conf
-  pacman-key --populate archlinux
-  # curl https://blackarch.org/strap.sh | bash
+# Hardening
+## Kernel Hardening
+- subscripts/sysctl-settings.sh
 
-:: Kernel Hardening ::
-# subscripts/sysctl-settings.sh
+## Implement Strict Packet Filtering
+- subscripts/iptables-for-workstation.sh
 
-:: Implement Strict Packet Filtering ::
-# subscripts/iptables-for-workstation.sh
+## Microcode Hardening
+- subscripts/grub-boot-parameters.sh
 
-:: Packages and Services ::
+## Secure Time Sync
+- `cd /bin`
+- `wget https://gitlab.com/madaidan/secure-time-sync/-/raw/master/secure-time-sync.sh`
+- `chmod +x secure-time-sync.sh`
+- `crontab -l > cron_bkp`
+- `echo \"0 * * * * /bin/secure-time-sync.sh\" >> cron_bkp`
+- `crontab cron_bkp`
+- `rm cron_bkp`
+
+## Randomize MACs on boot, on scan, and on connection
+https://tails.boum.org/contribute/design/MAC_address/
+- Edit `/etc/NetworkManager/conf.d/wifi_rand_mac.conf` to have the following
+```
+[device-mac-randomization]
+# "yes" is already the default for scanning
+wifi.scan-rand-mac-address=yes
+ 
+[connection-mac-randomization]
+# Randomize MAC for every ethernet connection
+ethernet.cloned-mac-address=random
+# Randomize MAC for every WiFi connection
+wifi.cloned-mac-address=random
+```
+- `echo "scan_ssid=0" >> /etc/NetworkManager/NetworkManager.conf`
+
+## Randomize hostname on boot
+- TODO
+
+## Enable Apparmor
+- subscripts/apparmor+auditd.sh
+- `reboot`
+- `apparmor_parser /usr/share/apparmor/extra-profiles/`
+
+# Packages and Services
+## Enhance Repos (Optional)
+- `echo "universe"                                        >> /etc/pacman.conf`
+- `echo "Server = https://universe.artixlinux.org/$arch"  >> /etc/pacman.conf`
+- `pacman -Sy artix-archlinux-support`
+- `echo "[extra]"                                         >> /etc/pacman.conf`
+- `echo "Include = /etc/pacman.d/mirrorlist-arch"         >> /etc/pacman.conf`
+- `echo "[community]" 				          >> /etc/pacman.conf`
+- `echo "Include = /etc/pacman.d/mirrorlist-arch"         >> /etc/pacman.conf`
+- `echo "[multilib]"                                      >> /etc/pacman.conf`
+- `echo "Include = /etc/pacman.d/mirrorlist-arch"         >> /etc/pacman.conf`
+- `pacman-key --populate archlinux`
+- `curl https://blackarch.org/strap.sh | bash`
+
+## Install Night Owl Recommended 
   pacman -Syu base-devel sway wl-clipboard i3status-rust xorg-xwayland \
               man-pages man-db tmux htop tree librewolf noto-fonts     \
               noto-fonts-emoji noto-fonts-extra pipewire pipewire-alsa \
@@ -124,13 +166,6 @@
   usermod -a -G video owl
 
   rc-update add wireguard default
-  cd /bin
-	wget https://gitlab.com/madaidan/secure-time-sync/-/raw/master/secure-time-sync.sh
-	chmod +x secure-time-sync.sh
-	crontab -l > cron_bkp
-	echo \"0 * * * * /bin/secure-time-sync.sh\" >> cron_bkp
-	crontab cron_bkp
-	rm cron_bkp
 
   useradd -m owl
   passwd owl # NightOwl
@@ -139,40 +174,6 @@
 	yay -S kickoff
   yay -S krathalans-apparmor-profiles-git
   exit
-
-:: Enable Apparmor ::
-# subscripts/apparmor+auditd.sh
-
-:: Microcode Hardening ::
-# subscripts/grub-boot-parameters.sh
-
-:: Random MAC ::
-# https://tails.boum.org/contribute/design/MAC_address/
-+++ /etc/NetworkManager/conf.d/wifi_rand_mac.conf
-[device-mac-randomization]
-# "yes" is already the default for scanning
-wifi.scan-rand-mac-address=yes
- 
-[connection-mac-randomization]
-# https://tails.boum.org/contribute/design/MAC_address/
-+++ /etc/NetworkManager/conf.d/wifi_rand_mac.conf
-[device-mac-randomization]
-# "yes" is already the default for scanning
-wifi.scan-rand-mac-address=yes
- 
-[connection-mac-randomization]
-# Randomize MAC for every ethernet connection
-ethernet.cloned-mac-address=random
-# Randomize MAC for every WiFi connection
-wifi.cloned-mac-address=random
-+++
-echo "scan_ssid=0" >> /etc/NetworkManager/NetworkManager.conf
-
-:: Random Host ::
-TODO
-
-:: Reboot ::
-apparmor_parser /usr/share/apparmor/extra-profiles/"
 
 -- Image to others -----------------------------------------------|
 dd if=/dev/wtf of=nightowl.img bs=4M status=progress 
