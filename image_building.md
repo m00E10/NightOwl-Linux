@@ -1,7 +1,7 @@
 # Pre-chroot
 Boot with an Artix USB, login as root and run the following
 ## Disk Setup
-- `pacman -Sy parted vim`
+- `pacman -Syu parted vim`
 - `parted -s /dev/sdX mklabel msdos`
 - `parted -s -a optimal /dev/sdX mkpart "primary" "ext4" "0%" "100%"`
 - `parted -s /dev/sdX set 1 boot on`
