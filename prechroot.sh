@@ -42,5 +42,7 @@ filesystems() {
 disk_setup
 luks_setup
 filesystems
-  
-artix-chroot /mnt chroot.sh
+
+mv chroot.sh /mnt
+clear; echo "Now run bash chroot.sh"
+artix-chroot /mnt
