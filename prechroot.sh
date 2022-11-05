@@ -43,4 +43,4 @@ disk_setup
 luks_setup
 filesystems
   
-artix-chroot /mnt ./chroot.sh
+artix-chroot /mnt chroot.sh
