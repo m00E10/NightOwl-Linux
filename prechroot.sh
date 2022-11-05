@@ -39,10 +39,8 @@ filesystems() {
   fstabgen -L /mnt >> /mnt/etc/fstab
 }
 
-main() {
-  disk_setup
-  luks_setup
-  filesystems
+disk_setup
+luks_setup
+filesystems
   
-  artix-chroot /mnt ./chroot.sh
-}
+artix-chroot /mnt ./chroot.sh
