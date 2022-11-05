@@ -11,7 +11,6 @@ packages() {
             lvm2 lvm2-openrc device-mapper-openrc memtest86+ dosfstools cryptsetup cryptsetup-openrc \
             haveged haveged-openrc device-mapper-openrc cronie cronie-openrc syslog-ng syslog-ng-openrc \
             glibc mkinitcpio
-  pacman -Rns artix-grub-theme
 }
 
 locale() {
