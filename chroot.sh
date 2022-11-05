@@ -38,11 +38,15 @@ mkinit() {
 }
 
 grub() {
-  blkid -s UUID -o value /dev/sda1 >> /etc/default/grub
+  clear; lsblk ; echo "What disk would you like to install Night Owl to?"
+  read DISK
+  
+  blkid -s UUID -o value /dev/$DISK\1 >> /etc/default/grub
   vim /etc/default/grub
   
-  grub-install --target=i386-pc --boot-directory=/boot --bootloader-id=artix --recheck /dev/sda
+  grub-install --target=i386-pc --boot-directory=/boot --bootloader-id=artix --recheck /dev/$DISK
   grub-mkconfig -o /boot/grub/grub.cfg
+  
   rc-update add device-mapper boot
   rc-update add lvm boot
   rc-update add dmcrypt boot
@@ -56,4 +60,4 @@ hosts
 mkinit
 grub
   
-clear; echo "Now run"; echo "exit"; echo "umount -R /mnt"; echo "sync"; echo "reboot"
+clear; echo "Now run"; echo "exit"; echo "umount -R /mnt"; echo "reboot"
