@@ -39,8 +39,8 @@ filesystems() {
   fstabgen -L /mnt >> /mnt/etc/fstab
 }
 
-disk_setup
-luks_setup
+partitions
+luks
 filesystems
 
 mv chroot.sh /mnt
