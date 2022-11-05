@@ -51,14 +51,10 @@ grub() {
   rc-update add syslog-ng default
 }
 
-
-
-main() {
-  packages
-  locale
-  hosts
-  mkinit
-  grub
+packages
+locale
+hosts
+mkinit
+grub
   
-  clear; echo "Now run"; echo "exit"; echo "umount -R /mnt"; echo "sync"; echo "reboot"
-}
+clear; echo "Now run"; echo "exit"; echo "umount -R /mnt"; echo "sync"; echo "reboot"
